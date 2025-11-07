@@ -1,7 +1,7 @@
 package File::Temp;
 # ABSTRACT: return name and handle of a temporary file safely
 
-our $VERSION = '0.2312';
+our $VERSION = '0.2313';
 
 =begin :__INTERNALS
 
@@ -47,17 +47,17 @@ The C<_can_do_level> method should be modified accordingly.
 
   use File::Temp qw/ tempfile tempdir /;
 
-  $fh = tempfile();
-  ($fh, $filename) = tempfile();
+  my $fh = tempfile();
+  my ($fh, $filename) = tempfile();
 
-  ($fh, $filename) = tempfile( $template, DIR => $dir);
-  ($fh, $filename) = tempfile( $template, SUFFIX => '.dat');
-  ($fh, $filename) = tempfile( $template, TMPDIR => 1 );
+  my ($fh, $filename) = tempfile( $template, DIR => $dir);
+  my ($fh, $filename) = tempfile( $template, SUFFIX => '.dat');
+  my ($fh, $filename) = tempfile( $template, TMPDIR => 1 );
 
   binmode( $fh, ":utf8" );
 
-  $dir = tempdir( CLEANUP => 1 );
-  ($fh, $filename) = tempfile( DIR => $dir );
+  my $dir = tempdir( CLEANUP => 1 );
+  my ($fh, $filename) = tempfile( DIR => $dir );
 
 Object interface:
 
@@ -65,18 +65,18 @@ Object interface:
   use File::Temp ();
   use File::Temp qw/ :seekable /;
 
-  $fh = File::Temp->new();
-  $fname = $fh->filename;
+  my $fh = File::Temp->new();
+  my $fname = $fh->filename;
 
-  $fh = File::Temp->new(TEMPLATE => $template);
-  $fname = $fh->filename;
+  my $fh = File::Temp->new(TEMPLATE => $template);
+  my $fname = $fh->filename;
 
-  $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.dat' );
+  my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.dat' );
   print $tmp "Some data\n";
   print "Filename is $tmp\n";
   $tmp->seek( 0, SEEK_END );
 
-  $dir = File::Temp->newdir(); # CLEANUP => 1 by default
+  my $dir = File::Temp->newdir(); # CLEANUP => 1 by default
 
 The following interfaces are provided for compatibility with
 existing APIs. They should not be used in new code.
@@ -85,25 +85,25 @@ MkTemp family:
 
   use File::Temp qw/ :mktemp  /;
 
-  ($fh, $file) = mkstemp( "tmpfileXXXXX" );
-  ($fh, $file) = mkstemps( "tmpfileXXXXXX", $suffix);
+  my ($fh, $file) = mkstemp( "tmpfileXXXXX" );
+  my ($fh, $file) = mkstemps( "tmpfileXXXXXX", $suffix);
 
-  $tmpdir = mkdtemp( $template );
+  my $tmpdir = mkdtemp( $template );
 
-  $unopened_file = mktemp( $template );
+  my $unopened_file = mktemp( $template );
 
 POSIX functions:
 
   use File::Temp qw/ :POSIX /;
 
-  $file = tmpnam();
-  $fh = tmpfile();
+  my $file = tmpnam();
+  my $fh = tmpfile();
 
-  ($fh, $file) = tmpnam();
+  my ($fh, $file) = tmpnam();
 
 Compatibility functions:
 
-  $unopened_file = File::Temp::tempnam( $dir, $pfx );
+  my $unopened_file = File::Temp::tempnam( $dir, $pfx );
 
 =head1 DESCRIPTION
 
@@ -718,7 +718,7 @@ sub _is_safe {
 
 # Internal routine to check whether a directory is safe
 # for temp files. Safer than _is_safe since it checks for
-# the possibility of chown giveaway and if that is a possibility
+# the possibility of chown giveaway and if that is a possibility,
 # checks each directory in the path to see if it is safe (with _is_safe)
 
 # If _PC_CHOWN_RESTRICTED is not set, does the full test of each
@@ -737,18 +737,16 @@ sub _is_verysafe {
 
   my $err_ref = shift;
 
-  # Should Get the value of _PC_CHOWN_RESTRICTED if it is defined
-  # and If it is not there do the extensive test
+  # Should get the value of _PC_CHOWN_RESTRICTED if it is defined
+  # and if it is not there, do the extensive test
   local($@);
-  my $chown_restricted;
-  $chown_restricted = &POSIX::_PC_CHOWN_RESTRICTED()
-    if eval { &POSIX::_PC_CHOWN_RESTRICTED(); 1};
+  my $chown_restricted = eval { POSIX::_PC_CHOWN_RESTRICTED() };
 
-  # If chown_resticted is set to some value we should test it
+  # If chown_restricted is set to some value, we should test it
   if (defined $chown_restricted) {
 
     # Return if the current directory is safe
-    return _is_safe($path,$err_ref) if POSIX::sysconf( $chown_restricted );
+    return _is_safe($path, $err_ref) if POSIX::pathconf( $path, $chown_restricted );
 
   }
 
@@ -1705,8 +1703,8 @@ sub tempdir  {
   # Create the directory
   my $tempdir;
   my $suffixlen = 0;
-  if ($^O eq 'VMS') {           # dir names can end in delimiters
-    $template =~ m/([\.\]:>]+)$/;
+  if ($^O eq 'VMS'
+      && ($template =~ m/([\.\]:>]+)$/)) {  # dir specs can end in delimiters
     $suffixlen = length($1);
   }
   if ( ($^O eq 'MacOS') && (substr($template, -1) eq ':') ) {
@@ -2367,7 +2365,7 @@ for sticky bit.
 
 In addition to the MEDIUM security checks, also check for the
 possibility of ``chown() giveaway'' using the L<POSIX|POSIX>
-sysconf() function. If this is a possibility, each directory in the
+pathconf() function. If this is a possibility, each directory in the
 path is checked in turn for safeness, recursively walking back to the
 root directory.
 
@@ -2516,7 +2514,7 @@ will need to pass the filename. You will have to clear the
 close-on-exec bit on that file descriptor before passing it to another
 process.
 
-    use Fcntl qw/F_SETFD F_GETFD/;
+    use Fcntl qw/F_SETFD/;
     fcntl($tmpfh, F_SETFD, 0)
         or die "Can't clear close-on-exec flag on temp fh: $!\n";
 
@@ -2554,7 +2552,7 @@ destruction), then you will get a warning from File::Path::rmtree().
 
 If you need to run code under taint mode, updating to the latest
 L<File::Spec> is highly recommended.  On Windows, if the directory
-given by L<File::Spec::tmpdir> isn't writable, File::Temp will attempt
+given by L<File::Spec/tmpdir> isn't writable, File::Temp will attempt
 to fallback to the user's local application data directory or croak
 with an error.
 
@@ -2595,7 +2593,7 @@ the C<tempdir> function.
 package ## hide from PAUSE
   File::Temp::Dir;
 
-our $VERSION = '0.2312';
+our $VERSION = '0.2313';
 
 use File::Path qw/ rmtree /;
 use strict;
@@ -2647,7 +2645,7 @@ sub DESTROY {
 
 1;
 
-=for Pod::Coverage STRINGIFY NUMIFY top_system_uid
+=for Pod::Coverage STRINGIFY NUMIFY top_system_uid MAX_TRIES MINX TEMPXXX
 
 =cut
 
